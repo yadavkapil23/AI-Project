@@ -1,0 +1,78 @@
+version: '3.8'
+
+services:
+  node-1:
+    container_name: aegis-node-1
+    image: aegis-scheduler:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      AEGIS_NODE_ID: node-1
+      AEGIS_GRPC_ADDR: 0.0.0.0:50051
+      AEGIS_CACHE_BYTES: $((64 * 1024 * 1024))
+      AEGIS_BLOCK_SIZE: $((16 * 1024))
+      AEGIS_PEERS: "node-2=node-2:50051,node-3=node-3:50051"
+      RUST_LOG: info,aegis_scheduler=debug
+    ports:
+      - "50051:50051"
+    networks:
+      - aegis-cluster
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:50051/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+    depends_on:
+      - node-2
+      - node-3
+
+  node-2:
+    container_name: aegis-node-2
+    image: aegis-scheduler:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      AEGIS_NODE_ID: node-2
+      AEGIS_GRPC_ADDR: 0.0.0.0:50051
+      AEGIS_CACHE_BYTES: $((64 * 1024 * 1024))
+      AEGIS_BLOCK_SIZE: $((16 * 1024))
+      AEGIS_PEERS: "node-1=node-1:50051,node-3=node-3:50051"
+      RUST_LOG: info,aegis_scheduler=debug
+    ports:
+      - "50052:50051"
+    networks:
+      - aegis-cluster
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:50051/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+
+  node-3:
+    container_name: aegis-node-3
+    image: aegis-scheduler:latest
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    environment:
+      AEGIS_NODE_ID: node-3
+      AEGIS_GRPC_ADDR: 0.0.0.0:50051
+      AEGIS_CACHE_BYTES: $((64 * 1024 * 1024))
+      AEGIS_BLOCK_SIZE: $((16 * 1024))
+      AEGIS_PEERS: "node-1=node-1:50051,node-2=node-2:50051"
+      RUST_LOG: info,aegis_scheduler=debug
+    ports:
+      - "50053:50051"
+    networks:
+      - aegis-cluster
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:50051/health"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+
+networks:
+  aegis-cluster:
+    driver: bridge
