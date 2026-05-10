@@ -3,11 +3,14 @@
 
 pub mod traits;
 pub mod llama_cpp;
+pub mod llama_cpp_safe;
+pub mod llama_cpp_sys;
 pub mod mock;
 pub mod metrics;
 
 pub use traits::{InferenceBackend, GenerationParams, Token, GenerationResponse};
 pub use llama_cpp::LlamaCppBackend;
+pub use llama_cpp_safe::Session;
 pub use mock::MockBackend;
 pub use metrics::BackendMetrics;
 

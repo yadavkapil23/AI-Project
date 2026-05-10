@@ -4,21 +4,20 @@
 use crate::traits::{
     FinishReason, GenerationParams, GenerationResponse, InferenceBackend, Token,
 };
+use crate::llama_cpp_safe::Session;
 use crate::BackendConfig;
-use anyhow::anyhow;
+use anyhow::{anyhow, Context};
 use async_trait::async_trait;
 use parking_lot::Mutex;
 use std::sync::Arc;
+use std::time::Instant;
 use tracing::{debug, info, warn};
 
-/// Wrapper around llama.cpp C++ interface
-/// Note: Phase 2a uses this as placeholder. Real implementation in Week 1.
+/// Wrapper around llama.cpp safe interface
 pub struct LlamaCppBackend {
     config: BackendConfig,
-    // In real implementation:
-    // context: *mut llama_context,
-    // model: *mut llama_model,
-    _phantom: std::marker::PhantomData<()>,
+    session: Arc<Mutex<Session>>,
+    generation_count: Arc<Mutex<u64>>,
 }
 
 impl LlamaCppBackend {
@@ -27,69 +26,67 @@ impl LlamaCppBackend {
         info!("Model path: {}", config.model_path);
         info!("Context size: {}", config.context_size);
         info!("Batch size: {}", config.batch_size);
+        info!("GPU layers: {} (0 = CPU only)", config.num_gpu_layers);
 
-        // In real implementation:
-        // 1. Load model: llama_load_model_from_file()
-        // 2. Create context: llama_new_context_with_model()
-        // 3. Verify model loaded
-        //
-        // For Phase 2a, this is a stub that demonstrates the interface
+        // Load model and create session
+        let session = Session::new(
+            &config.model_path,
+            config.context_size as u32,
+            config.batch_size as u32,
+            num_cpus::get() as i32, // Use all available CPUs
+            config.num_gpu_layers,
+            0.7,  // temperature
+            0.9,  // top_p
+            40,   // top_k
+        )
+        .context("Failed to initialize llama.cpp session")?;
 
         Ok(Self {
             config,
-            _phantom: std::marker::PhantomData,
+            session: Arc::new(Mutex::new(session)),
+            generation_count: Arc::new(Mutex::new(0)),
         })
-    }
-
-    /// Encode prompt tokens
-    #[allow(dead_code)]
-    fn encode_prompt(&self, prompt: &str) -> anyhow::Result<Vec<i32>> {
-        // In real implementation: llama_tokenize()
-        debug!("Encoding prompt: {}", prompt);
-
-        // Stub: return dummy token IDs
-        Ok((0..prompt.split_whitespace().count() as i32)
-            .map(|i| i + 1)
-            .collect())
-    }
-
-    /// Decode token to text
-    #[allow(dead_code)]
-    fn decode_token(&self, token_id: i32) -> anyhow::Result<String> {
-        // In real implementation: llama_token_to_piece()
-        let dummy_tokens = vec![
-            "the", "quick", "brown", "fox", "jumps", "over", "lazy", "dog",
-        ];
-
-        Ok(dummy_tokens[(token_id as usize) % dummy_tokens.len()].to_string())
     }
 }
 
 #[async_trait]
 impl InferenceBackend for LlamaCppBackend {
     async fn generate(&self, params: GenerationParams) -> anyhow::Result<GenerationResponse> {
-        debug!("LlamaCppBackend::generate called with prompt length: {}", params.prompt.len());
+        debug!("LlamaCppBackend::generate called");
+        debug!("  Prompt length: {} chars", params.prompt.len());
+        debug!("  Max tokens: {}", params.max_tokens);
 
-        // In real implementation:
-        // 1. Encode prompt
-        // 2. Create batch
-        // 3. Call llama_decode() in loop
-        // 4. Sample tokens using temperature/top_p
-        // 5. Decode tokens to text
-        //
-        // For Phase 2a prototype, return realistic mock response
+        let start = Instant::now();
 
-        let prompt_tokens = params.prompt.split_whitespace().count();
-        let completion_tokens = params.max_tokens.min(128);
+        // Lock session and generate tokens
+        let mut session = self.session.lock();
+        let generated = session
+            .generate(&params.prompt, params.max_tokens, num_cpus::get() as i32)
+            .context("Generation failed")?;
 
-        // Simulate realistic tokens
-        let tokens: Vec<Token> = (0..completion_tokens)
-            .map(|i| Token {
-                id: i as u32,
-                text: format!("token_{}", i),
-                logprob: -0.5 - (i as f32 * 0.05),
+        let elapsed_ms = start.elapsed().as_secs_f64() * 1000.0;
+        debug!("Generation took {:.2}ms", elapsed_ms);
+
+        // Convert to Token format
+        let tokens: Vec<Token> = generated
+            .iter()
+            .enumerate()
+            .map(|(i, (token_id, text))| Token {
+                id: *token_id as u32,
+                text: text.clone(),
+                logprob: -0.5 - (i as f32 * 0.05), // Realistic dummy values
             })
             .collect();
+
+        // Count prompt tokens
+        let prompt_tokens = params
+            .prompt
+            .split_whitespace()
+            .count();
+
+        let completion_tokens = tokens.len();
+
+        *self.generation_count.lock() += 1;
 
         Ok(GenerationResponse {
             tokens,
@@ -104,8 +101,8 @@ impl InferenceBackend for LlamaCppBackend {
         &self,
         params: GenerationParams,
     ) -> anyhow::Result<GenerationResponse> {
-        // In real implementation, this would return tokens one at a time
         // For now, same as non-streaming
+        // Real implementation would stream tokens one at a time
         self.generate(params).await
     }
 
@@ -124,15 +121,22 @@ impl InferenceBackend for LlamaCppBackend {
     async fn unload_model(&self) -> anyhow::Result<()> {
         info!("LlamaCppBackend: Unloading model");
 
-        // In real implementation:
-        // llama_free_context()
-        // llama_free_model()
+        // Session drops and frees resources automatically via Drop impl
+        // In real production code, might want explicit unload for VRAM management
 
         Ok(())
     }
 
     async fn health_check(&self) -> anyhow::Result<()> {
-        // In real implementation: check if model is loaded and responsive
+        // Check if session is responsive by checking vocabulary size
+        let session = self.session.lock();
+        let vocab_size = session.vocab_size();
+
+        if vocab_size <= 0 {
+            return Err(anyhow!("Invalid vocabulary size"));
+        }
+
+        debug!("Health check passed. Vocab size: {}", vocab_size);
         Ok(())
     }
 }
