@@ -1,0 +1,69 @@
+---
+# Horizontal Pod Autoscaler
+# Note: StatefulSets with consensus typically don't scale dynamically
+# This is provided for reference and optional use
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: aegis-scheduler
+  namespace: aegis
+  labels:
+    app: aegis-scheduler
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: StatefulSet
+    name: aegis-scheduler
+  minReplicas: 3
+  maxReplicas: 5
+  metrics:
+    # Scale based on CPU utilization
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+
+    # Scale based on memory utilization
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+  # Scale down slowly to maintain stability
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 100
+          periodSeconds: 30
+        - type: Pods
+          value: 1
+          periodSeconds: 30
+      selectPolicy: Max
+
+---
+# PodDisruptionBudget: Ensure minimum availability
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: aegis-scheduler
+  namespace: aegis
+  labels:
+    app: aegis-scheduler
+spec:
+  minAvailable: 2
+  selector:
+    matchLabels:
+      app: aegis-scheduler
+  unhealthyPodEvictionPolicy: AlwaysAllow
