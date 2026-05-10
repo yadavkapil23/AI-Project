@@ -1,0 +1,101 @@
+---
+# Network Policy: Allow intra-cluster consensus communication
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aegis-scheduler-consensus
+  namespace: aegis
+  labels:
+    app: aegis-scheduler
+spec:
+  podSelector:
+    matchLabels:
+      app: aegis-scheduler
+  policyTypes:
+    - Ingress
+    - Egress
+  ingress:
+    # Allow consensus traffic from other AEGIS nodes
+    - from:
+        - podSelector:
+            matchLabels:
+              app: aegis-scheduler
+      ports:
+        - protocol: TCP
+          port: 6000
+          name: consensus
+
+    # Allow metrics scraping from Prometheus
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              name: monitoring
+        - podSelector:
+            matchLabels:
+              app: prometheus
+      ports:
+        - protocol: TCP
+          port: 8000
+          name: metrics
+
+    # Allow health checks from Kubernetes
+    - from:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 8000
+          name: metrics
+
+  egress:
+    # Allow DNS
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: UDP
+          port: 53
+
+    # Allow inter-node communication
+    - to:
+        - podSelector:
+            matchLabels:
+              app: aegis-scheduler
+      ports:
+        - protocol: TCP
+          port: 6000
+          name: consensus
+        - protocol: TCP
+          port: 8000
+          name: metrics
+
+    # Allow external egress (if needed)
+    - to:
+        - namespaceSelector: {}
+      ports:
+        - protocol: TCP
+          port: 443
+        - protocol: TCP
+          port: 80
+
+---
+# Network Policy: Deny all ingress by default
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aegis-default-deny-ingress
+  namespace: aegis
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+
+---
+# Network Policy: Deny all egress by default
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: aegis-default-deny-egress
+  namespace: aegis
+spec:
+  podSelector: {}
+  policyTypes:
+    - Egress
