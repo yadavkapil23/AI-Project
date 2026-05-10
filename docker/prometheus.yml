@@ -1,0 +1,53 @@
+# Prometheus configuration for AEGIS monitoring
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'aegis-cluster'
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: []
+
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # AEGIS Node 1
+  - job_name: 'aegis-node-1'
+    static_configs:
+      - targets: ['aegis-node-1:9001']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'node-1'
+
+  # AEGIS Node 2
+  - job_name: 'aegis-node-2'
+    static_configs:
+      - targets: ['aegis-node-2:9001']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'node-2'
+
+  # AEGIS Node 3
+  - job_name: 'aegis-node-3'
+    static_configs:
+      - targets: ['aegis-node-3:9001']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: 'node-3'
