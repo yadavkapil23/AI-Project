@@ -3,10 +3,22 @@
 pub mod allocator;
 pub mod policy;
 pub mod metrics;
+pub mod distributed;
+pub mod block_ownership;
+pub mod failure_detector;
+pub mod consistency;
+pub mod node_selector;
+pub mod remote_allocator;
 
 pub use allocator::KVCacheAllocator;
 pub use policy::EvictionPolicy;
 pub use metrics::SchedulerMetrics;
+pub use distributed::DistributedKVCache;
+pub use block_ownership::BlockOwnership;
+pub use failure_detector::FailureDetector;
+pub use consistency::ConsistencyValidator;
+pub use node_selector::NodeSelector;
+pub use remote_allocator::RemoteAllocator;
 
 use anyhow::Result;
 use std::sync::Arc;
