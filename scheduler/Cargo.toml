@@ -1,0 +1,20 @@
+[package]
+name = "aegis-scheduler"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+tokio.workspace = true
+parking_lot.workspace = true
+dashmap.workspace = true
+crossbeam.workspace = true
+tracing.workspace = true
+prometheus.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+
+aegis-telemetry = { path = "../telemetry" }
+aegis-proto = { path = "../proto" }
