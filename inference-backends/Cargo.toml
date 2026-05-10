@@ -1,0 +1,30 @@
+[package]
+name = "aegis-inference-backends"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+tokio.workspace = true
+anyhow.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+uuid.workspace = true
+tracing.workspace = true
+parking_lot.workspace = true
+async-trait = "0.1"
+
+# FFI for llama.cpp
+llama-cpp-rs = { version = "0.1", optional = true }
+
+[dev-dependencies]
+criterion.workspace = true
+
+[features]
+default = ["mock"]
+mock = []
+llama-cpp = ["llama-cpp-rs"]
+
+[[bench]]
+name = "backend_latency"
+harness = false
