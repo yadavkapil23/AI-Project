@@ -2,9 +2,13 @@
 
 pub mod metrics;
 pub mod tracing as tracing_module;
+pub mod distributed_tracing;
+pub mod otlp_export;
 
 pub use metrics::*;
 pub use tracing_module::*;
+pub use distributed_tracing::*;
+pub use otlp_export::*;
 
 use anyhow::Result;
 
