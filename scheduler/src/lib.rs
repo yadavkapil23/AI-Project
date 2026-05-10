@@ -135,3 +135,9 @@ mod tests {
         assert!(result.is_ok());
     }
 }
+pub mod consensus_grpc_server;
+
+pub use consensus_grpc_server::{
+    GrpcServerConfig, ConsensusGrpcServer, RpcClientPool, RpcClient, RpcMetrics,
+    PeerHealthStatus, ServerHealthStatus, PoolMetricsSummary,
+};
