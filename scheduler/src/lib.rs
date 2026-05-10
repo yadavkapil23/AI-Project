@@ -15,6 +15,7 @@ pub mod consensus;
 pub mod replicated_log;
 pub mod state_machine;
 pub mod state_machine_coordinator;
+pub mod state_machine_replication;
 
 pub use allocator::KVCacheAllocator;
 pub use policy::EvictionPolicy;
