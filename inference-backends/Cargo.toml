@@ -17,6 +17,7 @@ num_cpus = "1.16"
 
 [dev-dependencies]
 criterion.workspace = true
+rand.workspace = true
 
 [features]
 default = ["mock"]
@@ -25,4 +26,8 @@ llama-cpp = []
 
 [[bench]]
 name = "backend_latency"
+harness = false
+
+[[bench]]
+name = "speculative_with_llama"
 harness = false
