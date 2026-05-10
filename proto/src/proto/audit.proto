@@ -1,0 +1,59 @@
+syntax = "proto3";
+
+package aegis.audit;
+
+// AuditEvent: a single cryptographically verifiable execution event
+message AuditEvent {
+    string event_id = 1;         // unique event ID
+    string request_id = 2;       // parent request
+    int64 timestamp_ns = 3;      // nanosecond precision
+    string event_type = 4;       // TOKEN_GENERATED, POLICY_CHECK, ROLLBACK, etc.
+    bytes event_data = 5;        // serialized event payload
+    bytes hash = 6;              // BLAKE3 hash of event
+    bytes prev_hash = 7;         // hash chain (append-only log)
+    string actor = 8;            // which subsystem
+    map<string, string> tags = 9; // tracing tags
+}
+
+// ExecutionCheckpoint: merkle DAG node for deterministic replay
+message ExecutionCheckpoint {
+    string checkpoint_id = 1;
+    string request_id = 2;
+    int32 sequence_num = 3;
+    bytes state_root = 4;        // merkle root of execution state
+    repeated bytes parent_hashes = 5; // links in DAG
+    int64 timestamp_ns = 6;
+    map<string, bytes> state_snapshot = 7; // sparse state encoding
+}
+
+// AuditLog: immutable append-only execution record
+message AuditLog {
+    string log_id = 1;
+    repeated AuditEvent events = 2;
+    int64 created_at_ns = 3;
+    bytes merkle_root = 4;       // merkle tree root
+    bytes signature = 5;         // optional: ed25519 signature
+}
+
+// PolicyViolation: safety constraint violation record
+message PolicyViolation {
+    string violation_id = 1;
+    string request_id = 2;
+    string policy_name = 3;
+    string violation_type = 4;   // SEQUENCE_VIOLATION, AUTHORIZATION_DENIED, etc.
+    string expected_state = 5;
+    string actual_state = 6;
+    string fallback_action = 7;
+    int64 detected_at_ns = 8;
+    bytes audit_hash = 9;        // link to audit event
+}
+
+// VerificationProof: proof of correct execution
+message VerificationProof {
+    string request_id = 1;
+    bytes execution_hash = 2;    // hash of execution trace
+    repeated bytes merkle_path = 3; // path to merkle root
+    bool verified = 4;
+    string verifier_node = 5;
+    int64 verified_at_ns = 6;
+}

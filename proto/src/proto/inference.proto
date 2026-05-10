@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+package aegis.inference;
+
+// InferenceRequest: client request for token generation
+message InferenceRequest {
+    string request_id = 1;           // unique per-request ID
+    string prompt = 2;               // input text
+    int32 max_tokens = 3;            // generation limit
+    float temperature = 4;           // sampling temperature
+    float top_p = 5;                 // nucleus sampling
+    repeated string stop_tokens = 6; // stop sequences
+    int32 seed = 7;                  // reproducibility
+    bool enable_speculation = 8;     // enable speculative decoding
+    int32 draft_length = 9;          // suggested draft length
+    string auth_token = 10;          // authentication
+    map<string, string> metadata = 11; // client metadata
+}
+
+// Token: a single generated token with metadata
+message Token {
+    int32 id = 1;           // token ID
+    string text = 2;        // decoded text
+    float logprob = 3;      // log probability
+    bool accepted = 4;      // speculative acceptance
+    string trace_id = 5;    // tracing ID
+}
+
+// InferenceResponse: streamed token response
+message InferenceResponse {
+    string request_id = 1;
+    Token token = 2;
+    int32 position = 3;           // position in sequence
+    string status = 4;            // GENERATING, COMPLETE, ERROR
+    repeated string stop_reasons = 5;
+    InferenceMetrics metrics = 6;
+    string error = 7;
+}
+
+// InferenceMetrics: performance telemetry
+message InferenceMetrics {
+    float elapsed_ms = 1;
+    float tokens_per_second = 2;
+    int32 kv_cache_hits = 3;
+    int32 kv_cache_misses = 4;
+    int32 speculative_tokens_tried = 5;
+    int32 speculative_tokens_accepted = 6;
+    float cache_fragmentation = 7;
+    string hardware_node = 8;
+}
+
+// HealthCheckRequest/Response: for service discovery
+message HealthCheckRequest {
+    string service = 1;
+}
+
+message HealthCheckResponse {
+    string status = 1; // SERVING, NOT_SERVING
+    map<string, string> details = 2;
+}
