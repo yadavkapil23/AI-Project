@@ -9,6 +9,7 @@ pub mod failure_detector;
 pub mod consistency;
 pub mod node_selector;
 pub mod remote_allocator;
+pub mod grpc_server;
 
 pub use allocator::KVCacheAllocator;
 pub use policy::EvictionPolicy;
@@ -19,6 +20,10 @@ pub use failure_detector::FailureDetector;
 pub use consistency::ConsistencyValidator;
 pub use node_selector::NodeSelector;
 pub use remote_allocator::RemoteAllocator;
+pub use grpc_server::{
+    serve as serve_scheduling, serve_with_shutdown as serve_scheduling_with_shutdown,
+    SchedulingServiceImpl,
+};
 
 use anyhow::Result;
 use std::sync::Arc;

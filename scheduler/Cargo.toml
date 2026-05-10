@@ -10,11 +10,27 @@ parking_lot.workspace = true
 dashmap.workspace = true
 crossbeam.workspace = true
 tracing.workspace = true
+tracing-subscriber.workspace = true
 prometheus.workspace = true
 uuid.workspace = true
 chrono.workspace = true
 anyhow.workspace = true
 serde.workspace = true
+blake3.workspace = true
+tonic.workspace = true
+prost.workspace = true
 
 aegis-telemetry = { path = "../telemetry" }
 aegis-proto = { path = "../proto" }
+
+[dev-dependencies]
+criterion.workspace = true
+tokio = { workspace = true, features = ["full", "test-util"] }
+
+[[bin]]
+name = "aegis-scheduler-node"
+path = "src/bin/scheduler_node.rs"
+
+[[bench]]
+name = "distributed_cache"
+harness = false

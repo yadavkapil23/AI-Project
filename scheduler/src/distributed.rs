@@ -241,6 +241,52 @@ impl DistributedKVCache {
         handles
     }
 
+    /// Public entry point used by the gRPC server when a *remote* caller
+    /// asks this node to allocate locally on its behalf. We physically own
+    /// the blocks on this node but record the caller in the ownership ledger
+    /// so that ownership queries elsewhere can find them.
+    pub async fn allocate_local_for_caller(
+        &self,
+        request_id: &str,
+        caller_node_id: &str,
+        num_blocks: usize,
+    ) -> Result<Vec<BlockHandle>> {
+        debug!(
+            "allocate_local_for_caller: request={} caller={} blocks={}",
+            request_id, caller_node_id, num_blocks
+        );
+        let block_ids = self.local_allocator.allocate(num_blocks)?;
+        let mut handles = Vec::with_capacity(block_ids.len());
+        for &block_id in &block_ids {
+            // Caller (remote) is the logical owner; physical residency is here.
+            self.ownership.register_block(block_id, caller_node_id.to_string())?;
+            self.node_map.insert(block_id, self.node_id.clone());
+            handles.push(BlockHandle {
+                block_id,
+                owner_node: caller_node_id.to_string(),
+                is_local: false,
+            });
+        }
+        *self.metrics.total_allocations.lock() += 1;
+        self.update_state_hash()?;
+        Ok(handles)
+    }
+
+    /// Stats about *this* node's local allocator, exposed for RPC responses.
+    pub fn local_stats(&self) -> crate::allocator::CacheStats {
+        self.local_allocator.stats()
+    }
+
+    /// Total blocks tracked in the ownership ledger across the cluster.
+    pub fn num_owned_blocks(&self) -> usize {
+        self.node_map.len()
+    }
+
+    /// This node's id (used for health responses).
+    pub fn node_id(&self) -> &str {
+        &self.node_id
+    }
+
     /// Deallocate blocks (may be local or remote)
     pub async fn deallocate(&self, blocks: Vec<usize>) -> Result<()> {
         debug!("deallocate: {} blocks", blocks.len());
