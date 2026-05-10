@@ -1,0 +1,62 @@
+# 3-node AEGIS *scheduler-only* cluster — exercises the cross-node KV-cache
+# coordination RPCs (AllocateGlobal/DeallocateGlobal/GetStateHash/HealthCheck)
+# without dragging in the full inference + observability stack.
+#
+# Bring up:
+#     docker compose -f docker/docker-compose.scheduler.yml up --build
+# Tear down:
+#     docker compose -f docker/docker-compose.scheduler.yml down -v
+
+version: '3.8'
+
+services:
+  aegis-sched-1:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.scheduler
+    environment:
+      AEGIS_NODE_ID: "node-1"
+      AEGIS_GRPC_ADDR: "0.0.0.0:50051"
+      AEGIS_PEERS: "node-2=aegis-sched-2:50051,node-3=aegis-sched-3:50051"
+      AEGIS_CACHE_BYTES: "67108864"   # 64 MiB
+      AEGIS_BLOCK_SIZE: "16384"       # 16 KiB
+      RUST_LOG: "info,aegis_scheduler=debug"
+    ports:
+      - "50051:50051"
+    networks: [aegis-sched]
+
+  aegis-sched-2:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.scheduler
+    environment:
+      AEGIS_NODE_ID: "node-2"
+      AEGIS_GRPC_ADDR: "0.0.0.0:50051"
+      AEGIS_PEERS: "node-1=aegis-sched-1:50051,node-3=aegis-sched-3:50051"
+      AEGIS_CACHE_BYTES: "67108864"
+      AEGIS_BLOCK_SIZE: "16384"
+      RUST_LOG: "info,aegis_scheduler=debug"
+    ports:
+      - "50052:50051"
+    networks: [aegis-sched]
+    depends_on: [aegis-sched-1]
+
+  aegis-sched-3:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.scheduler
+    environment:
+      AEGIS_NODE_ID: "node-3"
+      AEGIS_GRPC_ADDR: "0.0.0.0:50051"
+      AEGIS_PEERS: "node-1=aegis-sched-1:50051,node-2=aegis-sched-2:50051"
+      AEGIS_CACHE_BYTES: "67108864"
+      AEGIS_BLOCK_SIZE: "16384"
+      RUST_LOG: "info,aegis_scheduler=debug"
+    ports:
+      - "50053:50051"
+    networks: [aegis-sched]
+    depends_on: [aegis-sched-2]
+
+networks:
+  aegis-sched:
+    driver: bridge

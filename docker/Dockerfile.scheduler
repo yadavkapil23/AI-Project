@@ -1,0 +1,29 @@
+# Scheduler-only image — builds just the aegis-scheduler-node binary.
+# Smaller and faster than the full multi-service image in Dockerfile.
+FROM rust:1.75-slim-bookworm AS builder
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    pkg-config libssl-dev protobuf-compiler ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /build
+COPY . .
+
+RUN cargo build --release --bin aegis-scheduler-node
+
+# ---- runtime ----
+FROM debian:bookworm-slim
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates libssl3 && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /build/target/release/aegis-scheduler-node /usr/local/bin/aegis-scheduler-node
+
+ENV AEGIS_NODE_ID=node-1 \
+    AEGIS_GRPC_ADDR=0.0.0.0:50051 \
+    AEGIS_CACHE_BYTES=67108864 \
+    AEGIS_BLOCK_SIZE=16384 \
+    RUST_LOG=info
+
+EXPOSE 50051
+
+ENTRYPOINT ["/usr/local/bin/aegis-scheduler-node"]
