@@ -1,0 +1,34 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: aegis-config
+  namespace: aegis
+  labels:
+    app: aegis-scheduler
+data:
+  # WAL Configuration
+  wal-fsync-interval: "100"        # fsync every 100 entries
+  wal-max-segment-size: "1073741824"  # 1GB per WAL segment
+
+  # Snapshot Configuration
+  snapshot-interval: "10000"       # snapshot every 10k entries
+  snapshot-retention: "3"          # keep last 3 snapshots
+
+  # Consensus Timing (milliseconds)
+  election-timeout-ms: "150"       # timeout for leader election
+  heartbeat-interval-ms: "50"      # heartbeat frequency
+
+  # Network Configuration
+  rpc-timeout-ms: "1000"           # RPC timeout
+  rpc-retries: "3"                 # max retry attempts
+  backoff-initial-ms: "10"         # initial backoff
+  backoff-max-ms: "1000"           # max backoff
+  backoff-multiplier: "2.0"        # exponential backoff multiplier
+
+  # Metrics Configuration
+  metrics-enabled: "true"
+  metrics-interval-ms: "1000"      # metrics update interval
+
+  # Logging Configuration
+  log-level: "info"
+  log-format: "json"               # json or text
