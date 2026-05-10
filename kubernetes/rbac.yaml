@@ -1,0 +1,108 @@
+---
+# Service Account
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: aegis-scheduler
+  namespace: aegis
+  labels:
+    app: aegis-scheduler
+
+---
+# ClusterRole for metrics collection
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: aegis-scheduler
+  labels:
+    app: aegis-scheduler
+rules:
+  # Read pod info for discovery
+  - apiGroups: [""]
+    resources: ["pods", "pods/status"]
+    verbs: ["get", "list", "watch"]
+
+  # Read service endpoints
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch"]
+
+  # Read services
+  - apiGroups: [""]
+    resources: ["services"]
+    verbs: ["get", "list", "watch"]
+
+  # Read nodes for topology awareness
+  - apiGroups: [""]
+    resources: ["nodes"]
+    verbs: ["get", "list", "watch"]
+
+  # Read node stats
+  - apiGroups: [""]
+    resources: ["nodes/metrics", "nodes/stats"]
+    verbs: ["get"]
+
+---
+# ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: aegis-scheduler
+  labels:
+    app: aegis-scheduler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: aegis-scheduler
+subjects:
+  - kind: ServiceAccount
+    name: aegis-scheduler
+    namespace: aegis
+
+---
+# Role for namespace-specific access
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: aegis-scheduler
+  namespace: aegis
+  labels:
+    app: aegis-scheduler
+rules:
+  # Read ConfigMaps
+  - apiGroups: [""]
+    resources: ["configmaps"]
+    verbs: ["get", "list", "watch"]
+
+  # Read Secrets (if needed)
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
+
+  # Read PersistentVolumes and PersistentVolumeClaims
+  - apiGroups: [""]
+    resources: ["persistentvolumeclaims", "persistentvolumes"]
+    verbs: ["get", "list", "watch"]
+
+  # Lease operations for leader election
+  - apiGroups: ["coordination.k8s.io"]
+    resources: ["leases"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+---
+# RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: aegis-scheduler
+  namespace: aegis
+  labels:
+    app: aegis-scheduler
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: aegis-scheduler
+subjects:
+  - kind: ServiceAccount
+    name: aegis-scheduler
+    namespace: aegis
