@@ -10,6 +10,7 @@ pub mod consistency;
 pub mod node_selector;
 pub mod remote_allocator;
 pub mod grpc_server;
+pub mod tracing_integration;
 
 pub use allocator::KVCacheAllocator;
 pub use policy::EvictionPolicy;
@@ -24,6 +25,7 @@ pub use grpc_server::{
     serve as serve_scheduling, serve_with_shutdown as serve_scheduling_with_shutdown,
     SchedulingServiceImpl,
 };
+pub use tracing_integration::{SchedulerTracing, AllocationSpan, DeallocationSpan, GrpcCallSpan, RemoteAllocationSpan};
 
 use anyhow::Result;
 use std::sync::Arc;
