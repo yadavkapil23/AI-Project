@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package aegis.scheduling;
+
+// SchedulingService: cross-node KV-cache coordination RPCs
+//
+// Implemented by every scheduler node. RemoteAllocator clients call these
+// methods on peer nodes to allocate, deallocate, validate consistency, and
+// check liveness.
+service SchedulingService {
+    // Allocate `num_blocks` blocks on the remote node.
+    // Returns the allocated block IDs (server-local IDs, opaque to caller).
+    rpc AllocateGlobal(AllocateRequest) returns (AllocateResponse);
+
+    // Deallocate previously allocated block IDs on the remote node.
+    rpc DeallocateGlobal(DeallocateRequest) returns (DeallocateResponse);
+
+    // Get the current state hash for consistency validation across the cluster.
+    rpc GetStateHash(StateHashRequest) returns (StateHashResponse);
+
+    // Liveness probe; cheap, no side effects.
+    rpc HealthCheck(HealthRequest) returns (HealthResponse);
+}
+
+// ---------- AllocateGlobal ----------
+
+message AllocateRequest {
+    string request_id = 1;          // caller-side request id (for tracing)
+    uint32 num_blocks = 2;          // how many blocks to allocate
+    string caller_node_id = 3;      // who is calling (for ownership ledger)
+}
+
+message AllocateResponse {
+    repeated uint64 block_ids = 1;  // allocated block IDs on the remote node
+    uint32 free_blocks = 2;         // remote node's remaining free blocks
+    uint32 total_blocks = 3;        // remote node's total capacity
+    bool ok = 4;                    // false => see `error`
+    string error = 5;
+}
+
+// ---------- DeallocateGlobal ----------
+
+message DeallocateRequest {
+    repeated uint64 block_ids = 1;
+    string caller_node_id = 2;
+}
+
+message DeallocateResponse {
+    bool ok = 1;
+    string error = 2;
+    uint32 free_blocks = 3;         // post-deallocation
+}
+
+// ---------- GetStateHash ----------
+
+message StateHashRequest {
+    string caller_node_id = 1;
+}
+
+message StateHashResponse {
+    bytes state_hash = 1;           // 32-byte BLAKE3 digest
+    uint64 epoch = 2;               // monotonic counter, bumped on every state change
+    uint32 num_owned_blocks = 3;
+}
+
+// ---------- HealthCheck ----------
+
+message HealthRequest {
+    string caller_node_id = 1;
+}
+
+message HealthResponse {
+    enum Status {
+        UNKNOWN = 0;
+        SERVING = 1;
+        NOT_SERVING = 2;
+        DEGRADED = 3;
+    }
+    Status status = 1;
+    string node_id = 2;
+    uint32 free_blocks = 3;
+    uint32 total_blocks = 4;
+    uint64 uptime_secs = 5;
+}
