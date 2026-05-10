@@ -1,0 +1,15 @@
+[package]
+name = "aegis-consensus"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+
+[dependencies]
+tokio.workspace = true
+parking_lot.workspace = true
+dashmap.workspace = true
+uuid.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
