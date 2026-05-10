@@ -1,0 +1,228 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: aegis-scheduler
+  namespace: aegis
+  labels:
+    app: aegis-scheduler
+spec:
+  serviceName: aegis-scheduler
+  replicas: 3
+  selector:
+    matchLabels:
+      app: aegis-scheduler
+  template:
+    metadata:
+      labels:
+        app: aegis-scheduler
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      # Pod Affinity: Spread across nodes
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - aegis-scheduler
+                topologyKey: kubernetes.io/hostname
+
+      # Service Account
+      serviceAccountName: aegis-scheduler
+
+      # Init Containers
+      initContainers:
+        - name: init-data-dirs
+          image: busybox:1.35
+          command:
+            - sh
+            - -c
+            - |
+              mkdir -p /var/lib/aegis/{wal,snapshots}
+              chmod 700 /var/lib/aegis
+              chmod 700 /var/lib/aegis/wal
+              chmod 700 /var/lib/aegis/snapshots
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/aegis
+
+      # Containers
+      containers:
+        - name: aegis-scheduler
+          image: aegis-scheduler:latest
+          imagePullPolicy: IfNotPresent
+
+          # Ports
+          ports:
+            - name: consensus
+              containerPort: 6000
+              protocol: TCP
+            - name: metrics
+              containerPort: 8000
+              protocol: TCP
+
+          # Environment Variables
+          env:
+            # Logging
+            - name: RUST_LOG
+              value: "info,aegis_scheduler=debug"
+            - name: RUST_BACKTRACE
+              value: "1"
+
+            # Node Configuration
+            - name: AEGIS_NODE_ID
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+
+            # Network Configuration
+            - name: AEGIS_BIND_ADDR
+              value: "0.0.0.0:6000"
+            - name: AEGIS_METRICS_ADDR
+              value: "0.0.0.0:8000"
+
+            # Peer Discovery
+            - name: AEGIS_PEERS
+              value: "aegis-scheduler-0.aegis-scheduler.aegis.svc.cluster.local:6000,aegis-scheduler-1.aegis-scheduler.aegis.svc.cluster.local:6000,aegis-scheduler-2.aegis-scheduler.aegis.svc.cluster.local:6000"
+
+            # WAL Configuration
+            - name: WAL_FSYNC_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: aegis-config
+                  key: wal-fsync-interval
+            - name: WAL_MAX_SEGMENT_SIZE
+              valueFrom:
+                configMapKeyRef:
+                  name: aegis-config
+                  key: wal-max-segment-size
+
+            # Snapshot Configuration
+            - name: SNAPSHOT_INTERVAL
+              valueFrom:
+                configMapKeyRef:
+                  name: aegis-config
+                  key: snapshot-interval
+            - name: SNAPSHOT_RETENTION
+              valueFrom:
+                configMapKeyRef:
+                  name: aegis-config
+                  key: snapshot-retention
+
+            # Consensus Timing
+            - name: ELECTION_TIMEOUT_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: aegis-config
+                  key: election-timeout-ms
+            - name: HEARTBEAT_INTERVAL_MS
+              valueFrom:
+                configMapKeyRef:
+                  name: aegis-config
+                  key: heartbeat-interval-ms
+
+          # Liveness Probe
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+              scheme: HTTP
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+            successThreshold: 1
+
+          # Readiness Probe
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: metrics
+              scheme: HTTP
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 2
+            successThreshold: 1
+
+          # Startup Probe (for slow starts)
+          startupProbe:
+            httpGet:
+              path: /health
+              port: metrics
+              scheme: HTTP
+            initialDelaySeconds: 0
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
+
+          # Resource Management
+          resources:
+            requests:
+              cpu: "2"
+              memory: "8Gi"
+            limits:
+              cpu: "4"
+              memory: "16Gi"
+
+          # Volume Mounts
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/aegis
+
+          # Security Context
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            readOnlyRootFilesystem: true
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
+            seccompProfile:
+              type: RuntimeDefault
+
+          # Terminal Configuration
+          stdin: false
+          tty: false
+
+      # Pod Security Context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+
+      # Termination Grace Period
+      terminationGracePeriodSeconds: 30
+
+      # DNS Policy
+      dnsPolicy: ClusterFirst
+
+      # Restart Policy
+      restartPolicy: Always
+
+  # Volume Claim Templates
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          app: aegis-scheduler
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 100Gi
+        # Specify storage class if needed
+        # storageClassName: fast-ssd
