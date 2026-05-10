@@ -36,7 +36,7 @@ pub struct DistributedKVCache {
     node_selector: Arc<NodeSelector>,
 
     /// Remote allocators for each peer
-    remote_allocators: Arc<DashMap<String, Arc<RemoteAllocator>>>,
+    pub remote_allocators: Arc<DashMap<String, Arc<RemoteAllocator>>>,
 
     /// Metrics: allocations, deallocations, failures
     metrics: Arc<DistributedCacheMetrics>,
