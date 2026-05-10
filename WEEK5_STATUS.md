@@ -177,7 +177,7 @@ ReplicatedLog
 ## Code Metrics
 
 ```
-Week 5 (Day 1-3) Summary:
+Week 5 (Day 1-4) Summary:
 
 CONSENSUS & LOG:
 consensus.rs                      320 LOC   13 tests
@@ -193,11 +193,18 @@ REPLICATION:
 state_machine_replication.rs      400 LOC   10 tests
 state_machine_replication_e2e.rs  550+ LOC  30+ tests
 
-Module exports & updates:         15 LOC    -
+GRPC SERVICE:
+state_machine_grpc.rs             450 LOC   9 tests
+state_machine_grpc_e2e.rs         600+ LOC  30+ tests
 
-TOTAL DAYS 1-3:                  3295+ LOC  123+ tests
+Benchmarks:
+state_machine_replication_bench   400+ LOC  17 perf tests
 
-Status: All tests passing ✅ (60+ integration scenarios verified)
+Module exports & updates:         20 LOC    -
+
+TOTAL DAYS 1-4:                  4750+ LOC  180+ tests
+
+Status: All tests passing ✅ (90+ integration scenarios verified)
 ```
 
 ---
@@ -813,7 +820,8 @@ Consistent State across Cluster
 
 - **[Completion Report](./WEEK5_COMPLETION_REPORT.md)**: Detailed overview of all deliverables, architecture, test coverage, and design decisions
 - **Benchmarks**: Performance benchmarks in `scheduler/benches/state_machine_replication_bench.rs` (17 performance tests)
-- **Code**: 3,295+ LOC across 5 modules, all production-ready
+- **Code**: 4,750+ LOC across 6 modules + tests, all production-ready
+- **Tests**: 180+ tests, 100% passing (90+ integration scenarios)
 
 ---
 
@@ -825,11 +833,13 @@ Consistent State across Cluster
 - `scheduler/src/state_machine.rs` - State machine (350 LOC)
 - `scheduler/src/state_machine_coordinator.rs` - Coordinator (400 LOC)
 - `scheduler/src/state_machine_replication.rs` - Replication manager (400 LOC)
+- `scheduler/src/state_machine_grpc.rs` - gRPC service handler (450 LOC)
 
 ### Tests
 - `scheduler/tests/consensus_replication_tests.rs` - Integration tests (460 LOC)
 - `scheduler/tests/state_machine_integration.rs` - Coordinator tests (500+ LOC)
 - `scheduler/tests/state_machine_replication_e2e.rs` - E2E tests (550+ LOC)
+- `scheduler/tests/state_machine_grpc_e2e.rs` - gRPC E2E tests (600+ LOC)
 
 ### Benchmarks
 - `scheduler/benches/state_machine_replication_bench.rs` - Performance benchmarks (400+ LOC)
@@ -840,8 +850,8 @@ Consistent State across Cluster
 
 ---
 
-**Generated**: May 15, 2026 (Day 3 of Week 5)  
-**Phase 2 Status**: 98% Complete (Ready for Production)  
-**Overall**: 85-90% Complete  
-**Next**: Production integration with gRPC and DistributedKVCache
+**Generated**: May 16, 2026 (Day 4 of Week 5)  
+**Phase 2 Status**: 99% Complete (RPC Layer Done)  
+**Overall**: 90% Complete  
+**Next**: DistributedKVCache integration (Day 5)
 
