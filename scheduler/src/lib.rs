@@ -11,6 +11,10 @@ pub mod node_selector;
 pub mod remote_allocator;
 pub mod grpc_server;
 pub mod tracing_integration;
+pub mod consensus;
+pub mod replicated_log;
+pub mod state_machine;
+pub mod state_machine_coordinator;
 
 pub use allocator::KVCacheAllocator;
 pub use policy::EvictionPolicy;
