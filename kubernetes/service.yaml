@@ -1,0 +1,73 @@
+---
+# Headless Service for StatefulSet DNS
+apiVersion: v1
+kind: Service
+metadata:
+  name: aegis-scheduler
+  namespace: aegis
+  labels:
+    app: aegis-scheduler
+spec:
+  clusterIP: None
+  selector:
+    app: aegis-scheduler
+  ports:
+    - name: consensus
+      port: 6000
+      targetPort: consensus
+      protocol: TCP
+    - name: metrics
+      port: 8000
+      targetPort: metrics
+      protocol: TCP
+  publishNotReadyAddresses: true
+
+---
+# Client-facing Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: aegis-scheduler-client
+  namespace: aegis
+  labels:
+    app: aegis-scheduler
+    role: client
+spec:
+  type: LoadBalancer
+  selector:
+    app: aegis-scheduler
+  ports:
+    - name: consensus
+      port: 6000
+      targetPort: consensus
+      protocol: TCP
+      nodePort: 30600
+    - name: metrics
+      port: 8000
+      targetPort: metrics
+      protocol: TCP
+      nodePort: 30800
+  sessionAffinity: ClientIP
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800
+
+---
+# Metrics Service for Prometheus
+apiVersion: v1
+kind: Service
+metadata:
+  name: aegis-scheduler-metrics
+  namespace: aegis
+  labels:
+    app: aegis-scheduler
+    role: metrics
+spec:
+  type: ClusterIP
+  selector:
+    app: aegis-scheduler
+  ports:
+    - name: metrics
+      port: 8000
+      targetPort: metrics
+      protocol: TCP
