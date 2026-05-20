@@ -913,6 +913,6 @@ curl http://<node>:8000/metrics | grep replication_lag
 
 ---
 
-**Last Updated**: 2026-05-11  
+**Last Updated**:   
 **Project**: AEGIS Distributed AI Inference Scheduler  
 **Version**: 1.0.0

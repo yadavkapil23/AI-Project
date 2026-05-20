@@ -381,5 +381,5 @@ kubectl delete svc -n aegis -l app=aegis-scheduler
 
 ---
 
-**Last Updated**: 2026-05-11  
+**Last Updated**:   
 **Project**: AEGIS Distributed AI Inference Scheduler

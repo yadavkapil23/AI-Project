@@ -1,7 +1,7 @@
 # AEGIS Consensus System - Operational Runbooks
 
 **Version**: 1.0  
-**Date**: May 12, 2026  
+
 **System**: Distributed consensus with Raft-inspired algorithm  
 
 ---

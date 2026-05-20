@@ -319,6 +319,6 @@ cargo doc --release --no-deps
 
 ---
 
-**Last Updated**: 2026-05-11  
+**Last Updated**:   
 **Project**: AEGIS Distributed AI Inference Scheduler  
 **Version**: 1.0.0 (Production Ready)
